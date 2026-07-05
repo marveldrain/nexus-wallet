@@ -1,0 +1,15 @@
+# Nexus Wallet — Security Policy (RFC 9116)
+#
+# ⚠️ PLACEHOLDER — fill in real values before launch.
+# Contact, Expires, and Canonical below are required by the RFC and currently
+# point at nothing real. A scanner or a real security researcher finding this
+# unfilled is itself a signal you shipped before Phase 2/6 were done.
+
+Contact: mailto:security@example.com
+Expires: 2027-06-27T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://example.com/.well-known/security.txt
+
+# Policy: please report vulnerabilities privately before any public
+# disclosure. We do not yet have a published bug-bounty program or
+# disclosure-timeline commitment — add one here once Phase 2 is complete.

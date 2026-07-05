@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test-e2e:
+    name: Build, unit tests, E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: No secrets in logs (Hard Launch Gate #3)
+        run: node scripts/check-no-secret-logs.mjs
+
+      # Build order matters: tx-builder and the app both import @nexus/wallet-core's
+      # built dist/, and the app imports all four library packages. Each package is
+      # installed+built independently (npm, not pnpm — see README/CONTRIBUTING note
+      # on the package.json "packageManager" field being aspirational, not yet wired).
+      - name: wallet-core — install, build, test
+        working-directory: packages/wallet-core
+        run: |
+          npm install
+          npm run build
+          npm test
+
+      - name: tx-builder — install, build, test
+        working-directory: packages/tx-builder
+        run: |
+          npm install
+          npm run build
+          npm test
+
+      - name: chain-rpc — install, build, test
+        working-directory: packages/chain-rpc
+        run: |
+          npm install
+          npm run build
+          npm test
+
+      - name: portfolio — install, build, test
+        working-directory: packages/portfolio
+        run: |
+          npm install
+          npm run build
+          npm test
+
+      - name: onboarding app — install, typecheck + build
+        working-directory: apps/onboarding
+        run: |
+          npm install
+          npm run build
+
+      - name: onboarding app — Playwright E2E
+        working-directory: apps/onboarding
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/onboarding/playwright-report/
+          retention-days: 14
+
+  audit:
+    name: Supply-chain audit (npm audit, production deps)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [packages/wallet-core, packages/tx-builder, packages/chain-rpc, packages/portfolio, apps/onboarding]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - working-directory: ${{ matrix.package }}
+        run: |
+          npm install
+          npm audit --audit-level=high --omit=dev
