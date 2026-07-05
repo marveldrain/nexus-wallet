@@ -10,7 +10,7 @@ jobs:
     name: Build, unit tests, E2E
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -76,7 +76,7 @@ jobs:
         package:
           [packages/wallet-core, packages/tx-builder, packages/chain-rpc, packages/portfolio, apps/onboarding]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
