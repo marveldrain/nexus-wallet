@@ -5,8 +5,8 @@
  *   - `password` and `mnemonic` live ONLY in memory and are cleared the moment
  *     the encrypted vault is produced.
  *   - The only thing persisted is the encrypted `vault` (scrypt + XChaCha20-
- *     Poly1305). Here we use localStorage for the web demo; the desktop (Tauri)
- *     and mobile (Keychain/Keystore) shells use OS-secure storage instead.
+ *     Poly1305), via data/vaultStorage.ts: localStorage on the web, OS-secure
+ *     storage (Electron safeStorage/DPAPI) in the desktop shell (apps/desktop).
  *   - The unlocked `keyring` (holding the seed) is kept in memory while the
  *     wallet is UNLOCKED so it can sign transactions — this is the standard
  *     wallet model (MetaMask et al. do the same). It is wiped via
@@ -60,9 +60,8 @@ import {
   type NetworkMode,
   type WipeAfterAttempts,
 } from './data/settings';
+import { clearVaultJson, loadVaultJson, saveVaultJson } from './data/vaultStorage';
 import { USE_LIVE } from './config';
-
-const VAULT_STORAGE_KEY = 'nexus.vault.v1';
 
 export type Step =
   | 'welcome'
@@ -126,7 +125,7 @@ function deriveAccounts(
 
 function loadVault(): EncryptedVault | null {
   try {
-    const raw = localStorage.getItem(VAULT_STORAGE_KEY);
+    const raw = loadVaultJson();
     return raw ? (JSON.parse(raw) as EncryptedVault) : null;
   } catch {
     return null;
@@ -311,7 +310,7 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
     await new Promise((r) => setTimeout(r, 20));
     try {
       const vault = importMnemonic(mnemonic, password, passphrase);
-      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vault));
+      saveVaultJson(JSON.stringify(vault));
       const keyring = Keyring.fromMnemonic(mnemonic, passphrase);
       const accounts = deriveAccounts(keyring, 0, get().networkMode);
       set({
@@ -340,7 +339,7 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
         return;
       }
       const vault = importMnemonic(phrase, password, passphrase);
-      localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vault));
+      saveVaultJson(JSON.stringify(vault));
       const keyring = Keyring.fromMnemonic(phrase, passphrase);
       const accounts = deriveAccounts(keyring, 0, get().networkMode);
       set({
@@ -557,7 +556,7 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
       const { mnemonic, passphrase } = revealMnemonic(vault, currentPassword);
       try {
         const newVault = importMnemonic(mnemonic, newPassword, passphrase);
-        localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(newVault));
+        saveVaultJson(JSON.stringify(newVault));
         set({ vault: newVault, busy: false, notice: 'Password changed.', step: 'settings' });
       } finally {
         // mnemonic/passphrase are local consts here — nothing else retains them.
@@ -612,7 +611,7 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
 
   reset: () => {
     get().keyring?.lock();
-    localStorage.removeItem(VAULT_STORAGE_KEY);
+    clearVaultJson();
     set({
       step: 'welcome',
       password: '',

@@ -23,7 +23,8 @@ Extensible: a new chain is one `ChainAdapter` implementation away.
 | [`@nexus/chain-rpc`](packages/chain-rpc) | ✅ built | Balances, fees, broadcast over public RPCs (with failover) |
 | [`@nexus/portfolio`](packages/portfolio) | ✅ built | Pure valuation math + CoinGecko price source |
 | [`apps/onboarding`](apps/onboarding) | ✅ built | Full wallet app — onboarding, send/receive, multichain portfolio, activity, security settings, testnet mode (Vite + React + Tailwind) |
-| `apps/desktop` (Tauri/Electron), `apps/mobile` (RN), `apps/extension` (MV3) | ⬜ planned | Thin platform shells — see [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) Phase 4 |
+| [`apps/desktop`](apps/desktop) | ✅ built | Windows desktop app (Electron 43) — hardened shell + OS-secure vault storage (DPAPI); NSIS installer via `npm run dist` |
+| `apps/mobile` (RN), `apps/extension` (MV3) | ⬜ planned | Remaining platform shells — see [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) Phase 4 |
 
 See [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md) for the full feature
 list and what's left before a real public launch (security audit, legal,

@@ -1,0 +1,39 @@
+{
+  "name": "@nexus/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nexus Wallet desktop shell (Electron) — wraps the onboarding app build with OS-secure vault storage.",
+  "main": "main.js",
+  "scripts": {
+    "sync-renderer": "node sync-renderer.mjs",
+    "start": "npm run sync-renderer && electron .",
+    "dist": "npm run sync-renderer && electron-builder --win",
+    "test": "node test-desktop.mjs"
+  },
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.nexuswallet.app",
+    "productName": "Nexus Wallet",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

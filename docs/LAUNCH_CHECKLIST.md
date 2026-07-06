@@ -102,9 +102,11 @@ funds. Items are grouped by phase and roughly ordered. `[x]` = done & verified.
       storage — ⛔ requires hiring an external firm; not something buildable
       in-session. Budget time + cost for this before real funds.
 - [ ] Remediate all audit findings + re-review — blocked on the above.
-- [ ] **OS-secure key storage** per platform (iOS Keychain, Android Keystore,
-      Windows DPAPI/Tauri) — ⛔ requires the native shells (Phase 4) to exist
-      first; the web app currently uses `localStorage` for the encrypted vault.
+- [x] **OS-secure key storage** per platform — 🟡 Windows desktop DONE
+      (DPAPI via Electron `safeStorage`, see Phase 4; verified the on-disk
+      vault is a DPAPI blob, not readable JSON). iOS Keychain / Android
+      Keystore still pending their shells; the plain web build still uses
+      `localStorage` by design (browser has no OS keystore API).
 - [x] **Auto-lock** on idle timeout + lock-on-blur — configurable in Settings
       (1/5/15/30 min/Never; "lock when tab loses focus" toggle). Verified live:
       idle timer locks after the threshold, real activity resets it, blur-lock
@@ -263,11 +265,39 @@ funds. Items are grouped by phase and roughly ordered. `[x]` = done & verified.
 ## Phase 4 — Platform packaging & distribution
 
 **Desktop (Windows `.exe` + macOS/Linux)**
-- [ ] Choose & build: Tauri (smaller/safer, needs Rust) or Electron (Node-only, ships today)
-- [ ] Code-signing certificate (Windows OV/EV) + sign installer
-- [ ] macOS: Apple Developer ID signing + **notarization**; `.dmg`
-- [ ] Auto-update (signed) + installer/uninstaller
-- [ ] OS-secure storage wired (see Phase 2)
+- [x] **Choose & build: Electron** (Node-only — this machine has no Rust/MSVC
+      for Tauri; Electron is also what Exodus ships). `apps/desktop/`:
+      hardened shell (contextIsolation, no nodeIntegration, sandboxed
+      renderer, all navigation blocked, window.open → system browser
+      https-only, every permission request denied) wrapping the onboarding
+      app's production build. Electron 43.0.0 (upgraded from 37 specifically
+      to clear all `npm audit` advisories — 0 vulnerabilities). VERIFIED by
+      a 14-assertion Playwright-driven E2E (`apps/desktop/test-desktop.mjs`)
+      run against BOTH the dev shell AND the packaged exe: real wallet
+      creation, sandbox actually enforced (no require/process in renderer),
+      full relaunch→unlock round-trip. Live network reads confirmed working
+      from the packaged app's file:// origin (watched address loaded a real
+      $17.6k multichain balance + prices).
+- [ ] Code-signing certificate (Windows OV/EV) + sign installer — ⛔ needs
+      you to buy a cert (see docs/ACTION_ITEMS_FOR_YOU.md #6). Until then
+      Windows SmartScreen will warn on the unsigned installer.
+- [ ] macOS: Apple Developer ID signing + **notarization**; `.dmg` — ⛔
+      needs a Mac to build on + Apple Developer account.
+- [ ] Auto-update (signed) — blocked on the signing cert; updates must never
+      ship unsigned. Installer/uninstaller: ✅ NSIS one-click installer built
+      (`apps/desktop/release/Nexus Wallet Setup 0.1.0.exe`, ~104 MB).
+      🟡 App icon is Electron's default until a `logo.png`/`.ico` is added
+      (apps/onboarding/public/logo.png still pending from you).
+- [x] **OS-secure storage wired** (Hard Launch Gate #2 for desktop) — vault
+      blob (already scrypt+XChaCha20-Poly1305 under the password) is
+      additionally wrapped with Electron `safeStorage` (Windows DPAPI /
+      macOS Keychain / Linux libsecret) and written to
+      `%APPDATA%/Nexus Wallet/vault.dat` — NOT localStorage. Verified on
+      disk: the file is a DPAPI blob envelope with no readable vault
+      structure. Web build behavior unchanged (localStorage), switched via
+      `apps/onboarding/src/data/vaultStorage.ts` + the desktop preload
+      bridge. Graceful fallback + `secure:false` flag if an OS keystore is
+      unavailable (rare Linux setups).
 
 **Mobile (iOS + Android)**
 - [ ] React Native bare app sharing the TS core
@@ -350,6 +380,10 @@ funds. Items are grouped by phase and roughly ordered. `[x]` = done & verified.
 
 1. [ ] **Independent security audit passed** and findings remediated
 2. [ ] **OS-secure key storage** on every shipped platform (no `localStorage`)
+      — 🟡 DONE for the Windows/desktop build (DPAPI via Electron
+      safeStorage, verified on disk); still applies to any future web
+      deployment (inherently localStorage — consider desktop-only launch)
+      and to mobile (Keychain/Keystore) when those shells exist.
 3. [ ] **Auto-lock** + verified **no secrets in logs / crash reports** — 🟡
       auto-lock done & verified; "no secrets in logs" now has a systematic,
       CI-enforced check (see Phase 2) — the one remaining piece is that no
