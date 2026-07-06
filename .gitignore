@@ -11,6 +11,7 @@ build/
 # Native / platform
 apps/desktop/renderer/
 apps/desktop/release/
+apps/desktop/.test-userdata*/
 apps/mobile/android/
 apps/mobile/ios/Pods/
 

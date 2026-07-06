@@ -19,8 +19,17 @@ const path = require('node:path');
 
 // One stable userData dir ("Nexus Wallet") whether running `electron .` in
 // dev or the packaged app — otherwise the dev shell would read a different
-// vault location than the installed app.
-app.setPath('userData', path.join(app.getPath('appData'), 'Nexus Wallet'));
+// vault location than the installed app. Test runs pass --nexus-user-data to
+// use an ISOLATED dir instead, so tests can never touch (or delete) a real
+// user's vault, and never collide with a running instance's single-instance
+// lock. Must happen before requestSingleInstanceLock (the lock is per-dir).
+const testUserData = process.argv.find((a) => a.startsWith('--nexus-user-data='));
+app.setPath(
+  'userData',
+  testUserData
+    ? testUserData.slice('--nexus-user-data='.length)
+    : path.join(app.getPath('appData'), 'Nexus Wallet'),
+);
 
 // Single instance — a second launch focuses the existing window instead.
 if (!app.requestSingleInstanceLock()) {
@@ -135,10 +144,17 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // A wallet needs no camera/mic/geolocation/etc. Deny every permission request.
-  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => {
-    callback(false);
+  // A wallet needs no camera/mic/geolocation/etc. Deny every permission except
+  // sanitized clipboard WRITES — copying an address/txid to the clipboard is a
+  // core wallet interaction (navigator.clipboard.writeText). Clipboard READS
+  // stay denied: the app never needs to see what else is on the clipboard.
+  // Both handlers are required — Chromium consults the sync check for the
+  // Clipboard API in addition to the async request path.
+  const allowed = new Set(['clipboard-sanitized-write']);
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(allowed.has(permission));
   });
+  session.defaultSession.setPermissionCheckHandler((_wc, permission) => allowed.has(permission));
 
   createWindow();
 
